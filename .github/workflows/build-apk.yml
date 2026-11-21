@@ -1,1 +1,51 @@
 
+name: Craftsman APK Builder
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar proyecto
+        uses: actions/checkout@v4
+
+      - name: Preparar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Revisar archivos del proyecto
+        run: |
+          echo "Buscando proyecto Android..."
+          find . -maxdepth 5 \
+            \( -name gradlew -o -name project.godot \) \
+            -print
+
+      - name: Detectar proyecto Gradle
+        run: |
+          if find . -name gradlew -type f | grep -q .; then
+            chmod +x "$(find . -name gradlew -type f | head -1)"
+            cd "$(dirname "$(find . -name gradlew -type f | head -1)")"
+            ./gradlew assembleDebug
+          else
+            echo "No se encontró gradlew."
+            echo "Se necesita configurar la exportación de Godot si este es un proyecto Godot."
+            exit 1
+          fi
+
+      - name: Guardar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Craftsman-APK
+          path: '**/build/outputs/apk/debug/*.apk'
+          
